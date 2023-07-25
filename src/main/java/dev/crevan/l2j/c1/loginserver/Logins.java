@@ -39,7 +39,7 @@ public class Logins {
         return accessLevels.get(user);
     }
 
-    public boolean loginValid(final String user, final String password, final InetAddress address) {
+    public boolean loginValid(final String user, final String password, final InetAddress address) throws HackingException {
         boolean isOk;
         Integer failedConnects = hackProtection.get(address.getHostAddress());
         if (failedConnects != null && failedConnects > 2) {
