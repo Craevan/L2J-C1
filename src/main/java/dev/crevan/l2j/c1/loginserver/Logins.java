@@ -35,7 +35,7 @@ public class Logins {
         }
     }
 
-    public int getAccess(final String user) {
+    public int getAccessLevel(final String user) {
         return accessLevels.get(user);
     }
 
@@ -58,7 +58,7 @@ public class Logins {
                 if (autoCreate) {
                     logPass.put(user, hash);
                     accessLevels.put(user, 0);
-                    log.info(" Created new account for user: " + user);
+                    log.info("Created new account for user: " + user);
                     saveAccountsToDisk();
                     return true;
                 } else {
