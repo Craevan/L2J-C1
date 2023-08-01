@@ -43,13 +43,7 @@ public class NewCrypt {
     }
 
     public byte[] decrypt(final byte[] raw) throws IOException {
-        int count = raw.length / 8;
-        byte[] result = new byte[raw.length];
-        for (int i = 0; i < count; i++) {
-            decrypt.processBlock(raw, i * 8, result, i * 8);
-        }
-
-        return result;
+        return crypt(raw);
     }
 
     private long calculate(final byte[] raw, final int index) {
