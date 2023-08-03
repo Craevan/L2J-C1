@@ -55,8 +55,16 @@ public class ClientThread extends Thread {
         bannedIP.add(ip);
     }
 
-    private void sendPacket(final ServerBasePacket serverBasePacket) {
-        //TODO
+    private void sendPacket(final ServerBasePacket serverBasePacket) throws IOException {
+        byte[] data = serverBasePacket.getContent();
+        crypt.checksum(data);
+        log.finest("[S]\n" + printData(data, data.length));
+        data = crypt.crypt(data);
+        int len = data.length + 2;
+        os.write(len & 0xff);
+        os.write(len >> 8 & 0xff);
+        os.write(data);
+        os.flush();
     }
 
     private String fillHex(final int data, final int digits) {
