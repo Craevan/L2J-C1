@@ -11,7 +11,7 @@ public abstract class ServerBasePacket {
         bao = new ByteArrayOutputStream();
     }
 
-    public abstract byte[] getContent() throws Exception;
+    public abstract byte[] getContent() throws IOException;
 
     public int getLength() {
         return bao.size() + 2;
