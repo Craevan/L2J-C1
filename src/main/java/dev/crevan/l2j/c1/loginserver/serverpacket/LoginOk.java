@@ -15,7 +15,7 @@ public class LoginOk extends ServerBasePacket {
     }
 
     @Override
-    public byte[] getContent() throws Exception {
+    public byte[] getContent() {
         return getBytes();
     }
 }
