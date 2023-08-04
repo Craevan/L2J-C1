@@ -19,20 +19,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-// TODO
 public class ClientThread extends Thread {
 
     private static final Logger log = Logger.getLogger(ClientThread.class.getName());
     private static final List<String> bannedIP = new ArrayList<>();
 
-    private InputStream is;
-    private OutputStream os;
-    private NewCrypt crypt;
-    private Logins logins;
+    private final InputStream is;
+    private final OutputStream os;
+    private final NewCrypt crypt;
+    private final Logins logins;
 
-    private Socket socket;
-    private String gameServerHost;
-    private int gameServerPort;
+    private final Socket socket;
+    private final String gameServerHost;
+    private final int gameServerPort;
 
     public ClientThread(final Socket client, final Logins logins, final String host, final int port) throws IOException {
         this.socket = client;
@@ -76,8 +75,49 @@ public class ClientThread extends Thread {
     }
 
     private String printData(final byte[] data, final int len) {
-        // TODO
-        return null;
+        StringBuffer result = new StringBuffer();
+        int counter = 0;
+        for (int i = 0; i < len; i++) {
+            if (counter % 16 == 0) {
+                result.append(fillHex(i, 4)).append(": ");
+            }
+
+            result.append(fillHex(data[i] & 0xff, 2)).append(" ");
+            counter++;
+            if (counter == 16) {
+                result.append("   ");
+                int charpoint = i - 15;
+                for (int j = 0; j < 16; j++) {
+                    int t1 = data[charpoint++];
+                    if (t1 > 0x1f && t1 < 0x80) {
+                        result.append((char) t1);
+                    } else {
+                        result.append('.');
+                    }
+                }
+
+                result.append("\n");
+                counter = 0;
+            }
+        }
+        int rest = data.length % 16;
+        if (rest > 0) {
+            for (int i = 0; i < 17 - rest; i++) {
+                result.append("   ");
+            }
+
+            int charpoint = data.length - rest;
+            for (int i = 0; i < rest; i++) {
+                int t1 = data[charpoint++];
+                if (t1 > 0x1f && t1 < 0x80) {
+                    result.append((char) t1);
+                } else {
+                    result.append('.');
+                }
+            }
+            result.append("\n");
+        }
+        return result.toString();
     }
 
     @Override
