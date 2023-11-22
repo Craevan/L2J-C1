@@ -1,16 +1,19 @@
 package dev.crevan.l2j.c1.gameserver.model;
 
 import dev.crevan.l2j.c1.util.CopyOnWriteArrayList;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
+@Slf4j
+@Getter
+@Setter
 public class L2Object implements Serializable {
-
-    public static final Logger log = Logger.getLogger(L2Object.class.getName());
 
     private int objectId;
     private int x;
@@ -19,46 +22,6 @@ public class L2Object implements Serializable {
     private Set<L2PcInstance> knownPlayer = new HashSet<>();
 
     protected List<L2Object> knownObjectList = new CopyOnWriteArrayList<>();
-
-    public int getObjectId() {
-        return objectId;
-    }
-
-    public void setObjectId(final int objectId) {
-        this.objectId = objectId;
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public void setX(final int x) {
-        this.x = x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public void setY(final int y) {
-        this.y = y;
-    }
-
-    public int getZ() {
-        return z;
-    }
-
-    public void setZ(final int z) {
-        this.z = z;
-    }
-
-    public List<L2Object> getKnownObjectList() {
-        return knownObjectList;
-    }
-
-    public void setKnownObjectList(final List<L2Object> knownObjectList) {
-        this.knownObjectList = knownObjectList;
-    }
 
     public void addKnownObject(final L2Object l2Object) {
         knownObjectList.add(l2Object);
