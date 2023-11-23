@@ -1,6 +1,7 @@
 package dev.crevan.l2j.c1.gameserver.model;
 
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -12,6 +13,16 @@ import java.util.TimerTask;
 @Slf4j
 public abstract class L2Character extends L2Object {
 
+    public static final byte STATE_IDLE = 0;
+    public static final byte STATE_PICKUP_ITEM = 1;
+    public static final byte STATE_CASTING = 2;
+    public static final byte STATE_RESTING = 3;
+    public static final byte STATE_MOVING = 4;
+    public static final byte STATE_ATTACKING = 5;
+    public static final byte STATE_RANDOM_WALK = 6;
+    public static final byte STATE_INTERACT = 7;
+    public static final byte STATE_FOLLOW = 8;
+
     private static final Timer attackTimer = new Timer(true);
     private static final Timer hitTimer = new Timer(true);
     private static final Timer regenTimer = new Timer(true);
@@ -19,7 +30,7 @@ public abstract class L2Character extends L2Object {
     private static final Random random = new Random();
 
 
-    private ArrayList statusListners = new ArrayList();
+    private ArrayList<L2Character> statusListners = new ArrayList<>();
     private ArriveTask currentMoveTask;
     private AttackTask currentAttackTask;
     private HitTask currentHitTask;
@@ -80,6 +91,48 @@ public abstract class L2Character extends L2Object {
     private double collisionRadius;
     private double collisionHeght;
 
+    private L2Object target;
+    private int activeSoulShotGrade;
+
+    private boolean isInCombat;
+    private boolean isMoving;
+    private boolean isMovingToPawn;
+
+    private int pawnOffset;
+    private L2Object attackTarget;
+
+
+    public boolean knowsObject(final L2Object object) {
+        return knownObjectList.contains(object);
+    }
+
+    public void onDecay() {
+        L2World.getInstance().removeVisibleObject(this);
+    }
+
+    public void addStatusListener(final L2Character character) {
+        statusListners.add(character);
+    }
+
+    public void removeStatusListner(final L2Character character) {
+        statusListners.remove(character);
+    }
+
+    public int getX() {
+        if (!isMoving) {
+            return super.getX();
+        } else {
+            long elapsed = System.currentTimeMillis() - moveStartTime;
+            int diff = (int) (elapsed * xAddition);
+            int remain = Math.abs(xDestination - super.getX()) - Math.abs(diff);
+            if (remain > 0) {
+                return super.getX() + diff;
+            } else {
+                return xDestination;
+            }
+        }
+    }
+
     //TODO
 
 
@@ -123,6 +176,17 @@ public abstract class L2Character extends L2Object {
         @Override
         public void run() {
             // TODO
+        }
+    }
+
+    @RequiredArgsConstructor
+    class DecayTask extends TimerTask {
+
+        final L2Character instance;
+
+        @Override
+        public void run() {
+            instance.onDecay();
         }
     }
 }
