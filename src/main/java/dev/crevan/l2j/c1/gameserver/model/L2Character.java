@@ -35,9 +35,9 @@ public abstract class L2Character extends L2Object {
     private AttackTask currentAttackTask;
     private HitTask currentHitTask;
     private MpRegenTask mpRegenTask;
-    private HpRegenTask hpRegenTask;
-    private Object mpLock;
-    private Object hpLock;
+    private HpRegenTask hpRegenTask = new HpRegenTask(this);
+    private Object mpLock = new Object();
+    private Object hpLock = new Object();
     private boolean isMpRegenActive;
     private boolean isHpRegenActive;
     private int moveOffset;
@@ -50,9 +50,9 @@ public abstract class L2Character extends L2Object {
     private String name;
     private int level;
     private int maxHp;
-    private int currentHp;
+    private double currentHp;
     private int maxMp;
-    private int currentMp;
+    private double currentMp;
     private int accuracy;
     private int criticalHit;
     private int evasionRate;
@@ -96,11 +96,16 @@ public abstract class L2Character extends L2Object {
 
     private boolean isInCombat;
     private boolean isMoving;
+    private boolean isRunning;
     private boolean isMovingToPawn;
 
     private int pawnOffset;
-    private L2Object attackTarget;
+    private L2Object pawnTarget;
 
+    private boolean secondHit = false;
+    private boolean currentlyAttacking = false;
+
+    private L2Object attackTarget;
 
     public boolean knowsObject(final L2Object object) {
         return knownObjectList.contains(object);
@@ -133,9 +138,92 @@ public abstract class L2Character extends L2Object {
         }
     }
 
+    public int getY() {
+        if (!isMoving) {
+            return super.getY();
+        } else {
+            long elapsed = System.currentTimeMillis() - moveStartTime;
+            int diff = (int) (elapsed * yAddition);
+            int remain = Math.abs(yDestination - super.getY()) - Math.abs(diff);
+            if (remain > 0) {
+                return super.getY() + diff;
+            } else {
+                return yDestination;
+            }
+        }
+    }
+
+    public int getZ() {
+        return super.getZ();
+    }
+
+    public void stopMove() {
+        if (currentMoveTask != null) {
+            currentMoveTask.cancel();
+            currentMoveTask = null;
+        }
+
+        setX(getX());
+        setY(getY());
+        setZ(getZ()); // TODO this the initially requested z coord, it has to be replaced with the real Z
+        isMoving = false;
+    }
+
+    public void setCurrentHp(final double currentHp) {
+        this.currentHp = currentHp;
+        if (this.currentHp >= maxHp) {
+            stopHpRegeneration();
+            this.currentHp = maxHp;
+        } else if (!isHpRegenActive && !isDead()) {
+            startHpRegeneration();
+        }
+        broadcastStatusUpdate(); //TODO
+    }
+
+    private void stopHpRegeneration() {
+        if (isHpRegenActive) {
+            hpRegenTask.cancel();
+            hpRegenTask = null;
+            isHpRegenActive = false;
+            log.info("HP regen stop");
+        }
+    }
+
+    private void startHpRegeneration() {
+        log.info("HP regen started");
+        hpRegenTask = new HpRegenTask(this);
+        regenTimer.scheduleAtFixedRate(hpRegenTask, 3000, 3000);
+        isHpRegenActive = true;
+    }
+
+    public boolean isDead() {
+        return currentHp <= 0;
+    }
+
+    public void broadcastStatusUpdate() {
+        ArrayList<L2Character> list = statusListners;
+        if (list.isEmpty()) {
+            return;
+        }
+
+        StatusUpdate su = new StatusUpdate(getObjectId());
+        su.addAttribute(StatusUpdate.CUR_HP, (int) getCurrentHp());
+        su.addAttribute(StatusUpdate.CUR_MP, (int) getCurrentMp());
+
+        for (int i = 0; i < list.size(); i++) {
+            L2Character temp = (L2Character) list.get(i);
+            if (temp instanceof L2PcInstance) {
+                L2PcInstance player = (L2PcInstance) temp;
+                try {
+                    player.sendPacket(su);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+    }
+
     //TODO
-
-
 
     @AllArgsConstructor
     class ArriveTask extends TimerTask {
@@ -164,6 +252,11 @@ public abstract class L2Character extends L2Object {
     }
 
     class HpRegenTask extends TimerTask {
+        final L2Character instance;
+
+        public HpRegenTask(final L2Character instance) {
+            this.instance = instance;
+        }
 
         @Override
         public void run() {
