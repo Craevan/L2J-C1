@@ -1,5 +1,6 @@
 package dev.crevan.l2j.c1.gameserver.model;
 
+import dev.crevan.l2j.c1.gameserver.serverpackets.StatusUpdate;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -177,7 +178,7 @@ public abstract class L2Character extends L2Object {
         } else if (!isHpRegenActive && !isDead()) {
             startHpRegeneration();
         }
-        broadcastStatusUpdate(); //TODO
+        broadcastStatusUpdate();
     }
 
     private void stopHpRegeneration() {
@@ -200,6 +201,22 @@ public abstract class L2Character extends L2Object {
         return currentHp <= 0;
     }
 
+    public void startMpRegeneration() {
+        mpRegenTask = new MpRegenTask(this);
+        log.info("MP regen started");
+        regenTimer.scheduleAtFixedRate(mpRegenTask, 3000, 3000);
+        isMpRegenActive = true;
+    }
+
+    public void stopMpRegeneration() {
+        if (isMpRegenActive) {
+            mpRegenTask.cancel();
+            mpRegenTask = null;
+            isMpRegenActive = false;
+            log.info("MP regen stop");
+        }
+    }
+
     public void broadcastStatusUpdate() {
         ArrayList<L2Character> list = statusListners;
         if (list.isEmpty()) {
@@ -207,17 +224,16 @@ public abstract class L2Character extends L2Object {
         }
 
         StatusUpdate su = new StatusUpdate(getObjectId());
-        su.addAttribute(StatusUpdate.CUR_HP, (int) getCurrentHp());
-        su.addAttribute(StatusUpdate.CUR_MP, (int) getCurrentMp());
+        su.addAttribute(StatusUpdate.CUR_HP, (int) currentHp);
+        su.addAttribute(StatusUpdate.CUR_MP, (int) currentMp);
 
         for (int i = 0; i < list.size(); i++) {
-            L2Character temp = (L2Character) list.get(i);
-            if (temp instanceof L2PcInstance) {
-                L2PcInstance player = (L2PcInstance) temp;
+            L2Character temp = list.get(i);
+            if (temp instanceof L2PcInstance player) {
                 try {
                     player.sendPacket(su);
-                } catch (Exception e1) {
-                    e1.printStackTrace();
+                } catch (Exception e) {
+                    log.error("Error sending packet = {}, stacktrace = {}", e.getMessage(), e.getStackTrace());
                 }
             }
         }
@@ -265,6 +281,12 @@ public abstract class L2Character extends L2Object {
     }
 
     class MpRegenTask extends TimerTask {
+
+        private final L2Character instance;
+
+        public MpRegenTask(final L2Character instance) {
+            this.instance = instance;
+        }
 
         @Override
         public void run() {
