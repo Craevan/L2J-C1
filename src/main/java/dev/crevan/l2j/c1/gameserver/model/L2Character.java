@@ -1,14 +1,14 @@
 package dev.crevan.l2j.c1.gameserver.model;
 
+import dev.crevan.l2j.c1.gameserver.serverpackets.ServerBasePacket;
+import dev.crevan.l2j.c1.gameserver.serverpackets.SocialAction;
 import dev.crevan.l2j.c1.gameserver.serverpackets.StatusUpdate;
+import dev.crevan.l2j.c1.gameserver.serverpackets.SystemMessage;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 //TODO STUB
 @Slf4j
@@ -201,6 +201,17 @@ public abstract class L2Character extends L2Object {
         return currentHp <= 0;
     }
 
+    public void setCurrentMp(final double mp) {
+        currentMp = mp;
+        if (currentMp >= maxMp) {
+            stopMpRegeneration();
+            currentMp = maxMp;
+        } else if (!isMpRegenActive && !isDead()) {
+            startMpRegeneration();
+        }
+        broadcastStatusUpdate();
+    }
+
     public void startMpRegeneration() {
         mpRegenTask = new MpRegenTask(this);
         log.info("MP regen started");
@@ -237,6 +248,37 @@ public abstract class L2Character extends L2Object {
                 }
             }
         }
+    }
+
+    public void increaseLevel() {
+        log.info("Increasing level of {}", name);
+        level++;
+
+        StatusUpdate su = new StatusUpdate(getObjectId());
+        su.addAttribute(StatusUpdate.LEVEL, level);
+        sendPacket(su);
+        sendPacket(new SystemMessage(SystemMessage.YOU_INCREASED_YOUR_LEVEL));
+
+        SocialAction sa = new SocialAction(getObjectId(), 15);
+        broadcastPacket(sa);
+        sendPacket(sa);
+    }
+
+    public L2Character[] broadcastPacket(ServerBasePacket mov) {
+        Set<L2PcInstance> knownPlayersSet = getKnownPlayers();
+
+        L2Character[] players = knownPlayersSet.toArray(new L2PcInstance[0]);
+        log.info("players to notify:" + players.length + " packet:" + mov.getType());
+
+        for (int i = 0; i < players.length; i++) {
+            players[i].sendPacket(mov);
+        }
+
+        return players;
+    }
+
+    public void sendPacket(ServerBasePacket packet) {
+
     }
 
     //TODO
