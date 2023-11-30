@@ -19,7 +19,7 @@ public class L2Object implements Serializable {
     private int x;
     private int y;
     private int z;
-    private Set<L2PcInstance> knownPlayer = new HashSet<>();
+    private Set<L2PcInstance> knownPlayers = new HashSet<>();
 
     protected List<L2Object> knownObjectList = new CopyOnWriteArrayList<>();
 
@@ -27,7 +27,7 @@ public class L2Object implements Serializable {
         knownObjectList.add(l2Object);
 
         if (l2Object instanceof L2PcInstance) {
-            knownPlayer.add((L2PcInstance) l2Object);
+            knownPlayers.add((L2PcInstance) l2Object);
         }
     }
 
@@ -35,7 +35,7 @@ public class L2Object implements Serializable {
         knownObjectList.remove(l2Object);
 
         if (l2Object instanceof L2PcInstance) {
-            knownPlayer.remove((L2PcInstance) l2Object);
+            knownPlayers.remove((L2PcInstance) l2Object);
         }
     }
 
@@ -49,7 +49,7 @@ public class L2Object implements Serializable {
 
     }
 
-    public Set<L2PcInstance> getKnownPlayer() {
-        return knownPlayer;
+    public Set<L2PcInstance> getKnownPlayers() {
+        return knownPlayers;
     }
 }
