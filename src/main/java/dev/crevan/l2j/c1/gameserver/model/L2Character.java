@@ -4,7 +4,6 @@ import dev.crevan.l2j.c1.gameserver.serverpackets.ServerBasePacket;
 import dev.crevan.l2j.c1.gameserver.serverpackets.SocialAction;
 import dev.crevan.l2j.c1.gameserver.serverpackets.StatusUpdate;
 import dev.crevan.l2j.c1.gameserver.serverpackets.SystemMessage;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,7 +29,6 @@ public abstract class L2Character extends L2Object {
     private static final Timer moveTimer = new Timer(true);
     private static final Random random = new Random();
 
-
     private ArrayList<L2Character> statusListners = new ArrayList<>();
     private ArriveTask currentMoveTask;
     private AttackTask currentAttackTask;
@@ -47,6 +45,7 @@ public abstract class L2Character extends L2Object {
     private double xAddition;
     private double yAddition;
     private long timeToTarget;
+    private byte currentState = STATE_IDLE;
 
     private String name;
     private int level;
@@ -101,7 +100,7 @@ public abstract class L2Character extends L2Object {
     private boolean isMovingToPawn;
 
     private int pawnOffset;
-    private L2Object pawnTarget;
+    private L2Character pawnTarget;
 
     private boolean secondHit = false;
     private boolean currentlyAttacking = false;
@@ -264,6 +263,14 @@ public abstract class L2Character extends L2Object {
         sendPacket(sa);
     }
 
+    public void decreaseLevel() {
+        log.info("Decreasing level of " + name);
+        level--;
+        StatusUpdate su = new StatusUpdate(getObjectId());
+        su.addAttribute(StatusUpdate.LEVEL, level);
+        sendPacket(su);
+    }
+
     public L2Character[] broadcastPacket(ServerBasePacket mov) {
         Set<L2PcInstance> knownPlayersSet = getKnownPlayers();
 
@@ -281,15 +288,71 @@ public abstract class L2Character extends L2Object {
 
     }
 
+    public void onTargetReached() {
+        if (pawnTarget != null) {
+            int x = pawnTarget.getX();
+            int y = pawnTarget.getY();
+            int z = pawnTarget.getZ();
+
+            double distance = getDistance(x, y);
+            if (currentState == STATE_FOLLOW) {
+                calculateMovement(x, y, z, distance);
+                return;
+            }
+            if (((distance > getAttackRange()) && (currentState == STATE_ATTACKING)) || (pawnTarget.isMoving && currentState != STATE_ATTACKING)) {
+                calculateMovement(x, y, z, distance);
+                return;
+            }
+        }
+        stopMove();
+        log.info("{} :: target reached at: x = {}, y = {}, z = {}", name, getX(), getY(), getZ());
+        if (pawnTarget != null) {
+            pawnTarget = null;
+            isMovingToPawn = false;
+        }
+    }
+
+    public double getDistance(final int x, final int y) {
+        long dx = x - getX();
+        long dy = y - getY();
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    public int getAttackRange() {
+        return -1;
+    }
+
+    public void setWalkSpeed(final int speed) {
+        walkSpeed = speed;
+        updateEffectiveSpeed();
+    }
+
+    private void updateEffectiveSpeed() {
+        if (isRunning) {
+            effectiveSpeed = runSpeed * (float) movementMultiplier;
+        } else {
+            effectiveSpeed = walkSpeed * (float) movementMultiplier;
+        }
+    }
+
+    private synchronized void calculateMovement(final int x, final int y, final int z, final double distance) {
+        // TODO
+    }
+
     //TODO
 
-    @AllArgsConstructor
+    @RequiredArgsConstructor
     class ArriveTask extends TimerTask {
-        L2Character instance;
+        final L2Character instance;
 
         @Override
         public void run() {
-            // TODO
+            try {
+                instance.onTargetReached();
+            } catch (Throwable t) {
+                log.error("ERROR {}, stacktrace = {}", t.getMessage(), t.getStackTrace());
+            }
+            currentMoveTask = null;
         }
     }
 
